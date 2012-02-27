@@ -4,6 +4,7 @@
     <title>D3 Intro</title>
     <link rel="stylesheet" type="text/css" href="deck/deck.css">
     <script src="d3/d3.js"></script>
+    <script src="d3/d3.csv.js"></script>
     <script src="deck/slide_maker.js"></script>
     <script>
       var title;
@@ -11,550 +12,114 @@
       function empty_svg(parent) {
         window.svg = d3.select(parent).append('svg');
       }
-
-      function rect1(parent) {
-        empty_svg(parent);
-
-        svg
-          .append('rect')
-          .attr('x', 150)
-          .attr('y', 100)
-          .attr('width', 60)
-          .attr('height', 300);
-      }
-
-      function rect3(parent) {
-        empty_svg(parent);
-
-        svg.append('rect')
-          .attr('x', 200)
-          .attr('y', 300)
-          .attr('width', 40)
-          .attr('height', 50);
-
-        svg.append('rect')
-          .attr('x', 100)
-          .attr('y', 20)
-          .attr('width', 30)
-          .attr('height', 50);
-
-        svg.append('rect')
-          .attr('x', 10)
-          .attr('y', 200)
-          .attr('width', 25)
-          .attr('height', 90);
-      }
     </script>
   </head>
   <body>
 
     <section class="main_title">
-      <h1>D3</h1>
-      <h2>Data Driven Documents</h2>
-      <a href="http://vogievetsky.github.com/IntroD3">http://vogievetsky.github.com/IntroD3</a>
-      <div class="name">Vadim Ogievetsky</div>
-      <div class="date">Feb 16, 2012</div>
+      <h1>D4</h1>
+      <h2>D3 Dashboard</h2>
+      <div class="name">Jeff Hammerbacher</div>
+      <div class="date">Feb 28, 2012</div>
     </section>
 
-    <script>
-    slide.title('First some JavaScript')
+<script>
+slide.title('Dot Plot');
 
-    slide.code('JavaScript', empty_svg, function() {
-      // In JS functions are first class citizens.
-      // This is a very powerful concept!
-      var squared = function(x) { return x*x };
-      console.log('squared(7) ==', squared(7));
+slide.code('JavaScript', empty_svg, function() {
+d3.csv("f500.csv", function(f500) {
+  // select revenues of CA companies
+  var data = f500.filter(function(d) { 
+      return d.state_location == "CA"; })
+    .map(function(d) { 
+      return parseInt(d.revenues) });
 
-      // D3 has many helper methods
-      // d3.scale.linear() returns a function that
-      // will map the given domain to the given
-      // range linearly.
-      var w = 640, h = 320;
+  var w = 275,
+      h = 225,
+      m = [200, 125, 200, 125],
+      r = 3,
+      x = d3.scale.linear()
+            .domain([0, d3.max(data)])
+            .range([0, w]),
+      y = d3.scale.ordinal()
+            .domain(["CA"])
+            .range([h/2]);
 
-      var x = d3.scale.linear()
-        .domain([-1, 1])
-        .range([0, w]);
+  var vis = svg.append("svg")
+              .attr("width", m[1] + w + m[3])
+              .attr("height", m[0] + h + m[2])
+              .append("g")
+              .attr("transform",
+                    "translate("+m[1]+","
+                                +m[0]+")");
 
-      var y = d3.scale.linear()
-        .domain([0, 1])
-        .range([0, h]);
+  // x axis
+  var xrule = vis.selectAll("g.x")
+                .data(x.ticks(5))
+                .enter()
+                .append("g")
+                .attr("class", "x");
 
-      console.log('x(0) ==', x(0)); // == w/2
-      console.log('y(3) ==', y(3)); // == 3*h
+  xrule.append("line")
+    .attr("x1", x)
+    .attr("x2", x)
+    .attr("y1", 0)
+    .attr("y2", h)
+    .attr("stroke", "#ccc");
+
+  xrule.append("text")
+    .attr("x", x)
+    .attr("y", h)
+    .attr("dy", "2.0ex")
+    .attr("text-anchor", "middle")
+    .text(x.tickFormat(5));
+
+  // y axis
+  var yrule = vis.selectAll("g.y")
+                .data(["CA"])
+                .enter()
+                .append("g")
+                .attr("class", "y");
+
+  yrule.append("line")
+    .attr("x1", -3)
+    .attr("x2", 0)
+    .attr("y1", y)
+    .attr("y2", y)
+    .attr("stroke", "#ccc");
+
+  yrule.append("text")
+    .attr("x", -5)
+    .attr("y", y)
+    .attr("dy", ".35em")
+    .attr("text-anchor", "end")
+    .text(String);
+
+  // draw the dots
+  vis.selectAll("circle")
+    .data(data)
+    .enter()
+    .append("circle")
+    .attr("cx", x)
+    .attr("cy", y("CA"))
+    .attr("r", r)
+    .on("mouseover", function(d) {
+      vis.append("text")
+        .attr("id", "tip")
+        .attr("x", x(d))
+        .attr("y", y("CA")-10)
+        .attr("text-anchor", "middle")
+        .attr("font-size", "8")
+        .text(d3.format(",")(d));
+      d3.select(this).attr("fill", "red");
+    })
+    .on("mouseout", function(d) {
+       vis.select("#tip").remove();
+       d3.select(this).attr("fill", "black")
     });
-
-    slide.title('Core D3')
-
-    // -----------------------------------------------
-    slide.code_title(title = '.select()');
-
-    slide.code(title, rect1, function() {
-      // svg = d3.select('svg.that_svg_to_the_right')
-      var myRect = svg.select('rect')
-      myRect.attr('width', 100)
-      myRect.attr('height', 100)
-      myRect.style('fill', 'steelblue')
-    });
-
-    slide.code(title, rect1, function() {
-      // svg = d3.select('svg.that_svg_to_the_right')
-      svg.select('rect')
-        .attr('width', 100)
-        .attr('height', 100)
-        .style('fill', 'steelblue')
-    });
-
-
-    // -----------------------------------------------
-    slide.code_title(title = '.selectAll()');
-
-    slide.code(title, rect3, function() {
-      svg.select('rect')
-        .attr('width', 100)
-        .attr('height', 100)
-        .style('fill', 'steelblue')
-    });
-
-    slide.code(title, rect3, function() {
-      svg.selectAll('rect')
-        .attr('width', 100)
-        .attr('height', 100)
-        .style('fill', 'steelblue')
-    });
-
-    slide.code(title, rect3, function() {
-      svg.selectAll('rect')
-        .attr('x', 0)
-        .attr('y', function(d,i) { return i*90+50 })
-        .attr('width', function(d,i) {
-            return i*150+100;
-          })
-        .attr('height', 20)
-        .style('fill', 'steelblue')
-    });
-
-
-    // -----------------------------------------------
-    slide.code_title(title = '.data()');
-
-    slide.code(title, rect3, function() {
-      svg.selectAll('rect')
-        .data([64, 128, 256])
-        .attr('x', 0)
-        .attr('y', function(d,i) { return i*90+50 })
-        .attr('width', function(d,i) { return d; })
-        .attr('height', 20)
-        .style('fill', 'steelblue')
-    });
-
-    // -----------------------------------------------
-    slide.code_title(title = '.enter()');
-
-    slide.code(title, rect3, function() {
-      var selection = svg.selectAll('rect')
-        .data([64, 128, 256, 71])
-
-      selection
-        .attr('x', 0)
-        .attr('y', function(d,i) { return i*90+50 })
-        .attr('width', function(d,i) { return d; })
-        .attr('height', 20)
-        .style('fill', 'steelblue')
-    });
-
-    slide.code(title, rect3, function() {
-      var selection = svg.selectAll('rect')
-        .data([64, 128, 256, 71])
-
-      selection
-        .attr('x', 0)
-        .attr('y', function(d,i) { return i*90+50 })
-        .attr('width', function(d,i) { return d; })
-        .attr('height', 20)
-        .style('fill', 'steelblue')
-
-      selection.enter().append('rect')
-        .attr('x', 10) // let's just put it somewhere
-        .attr('y', 10)
-        .attr('width', 30)
-        .attr('height', 30)
-        .style('fill', 'green')
-    });
-
-    slide.code(title, rect3, function() {
-      var selection = svg.selectAll('rect')
-        .data([64, 128, 256, 71])
-
-      selection
-        .attr('x', 0)
-        .attr('y', function(d,i) { return i*90+50 })
-        .attr('width', function(d,i) { return d; })
-        .attr('height', 20)
-        .style('fill', 'steelblue')
-
-      selection.enter().append('rect')
-        .attr('x', 0)
-        .attr('y', function(d,i) { return i*90+50 })
-        .attr('width', function(d,i) { return d; })
-        .attr('height', 20)
-        .style('fill', 'steelblue')
-    });
-
-    slide.code(title, rect3, function() {
-      var selection = svg.selectAll('rect')
-        .data([64, 128, 256, 71])
-
-      // Shorter
-      selection.enter().append('rect')
-
-      // when updating the regular selection then
-      // enter selection is joined in to the update
-      // selection for convenience.
-      selection
-        .attr('x', 0)
-        .attr('y', function(d,i) { return i*90+50 })
-        .attr('width', function(d,i) { return d; })
-        .attr('height', 20)
-        .style('fill', 'steelblue')
-    });
-
-    slide.code(title + ' // a common pattern', empty_svg, function() {
-      svg.selectAll('rect')
-        .data([64, 128, 256])
-        .enter().append('rect')
-          .attr('x', 0)
-          .attr('y', function(d,i) { return i*90+50 })
-          .attr('width', function(d,i) { return d; })
-          .attr('height', 20)
-          .style('fill', 'steelblue')
-    });
-
-
-    // -----------------------------------------------
-    slide.code_title(title = '.exit()');
-
-    slide.code(title, rect3, function() {
-      var selection = svg.selectAll('rect')
-        .data([64, 128])
-
-      selection
-        .attr('x', 0)
-        .attr('y', function(d,i) { return i*90+50 })
-        .attr('width', function(d,i) { return d; })
-        .attr('height', 20)
-        .style('fill', 'steelblue')
-    });
-
-    slide.code(title, rect3, function() {
-      var selection = svg.selectAll('rect')
-        .data([64, 128])
-
-      selection
-        .attr('x', 0)
-        .attr('y', function(d,i) { return i*90+50 })
-        .attr('width', function(d,i) { return d; })
-        .attr('height', 20)
-        .style('fill', 'steelblue')
-
-      selection.exit()
-        .remove()
-    });
-
-
-    // -----------------------------------------------
-    slide.code_title(title = '.transition()');
-
-    slide.code(title, rect3, function() {
-      svg.selectAll('rect')
-        .data([64, 128, 256])
-        .transition()
-        .duration(3000) // 3 seconds
-          .attr('x', 0)
-          .attr('y', function(d,i) { return i*90+50 })
-          .attr('width', function(d,i) { return d; })
-          .attr('height', 20)
-          .style('fill', 'steelblue')
-    });
-
-    slide.code(title, rect3, function() {
-      var selection = svg.selectAll('rect')
-        .data([64, 128, 256, 71])
-
-      selection.enter().append('rect')
-        .attr('x', 200)
-        .attr('y', 200)
-        .attr('width', 10)
-        .attr('height', 10)
-        .style('fill', 'red')
-
-      selection
-        .transition()
-        .duration(3000)
-          .attr('x', 0)
-          .attr('y', function(d,i) { return i*90+50 })
-          .attr('width', function(d,i) { return d; })
-          .attr('height', 20)
-          .style('fill', 'steelblue')
-          .transition()
-          .duration(3000)
-          .delay(3000)
-            .style('fill', 'green')
-            .attr('width', function(d,i) {
-                return d*1.5;
-              })
-
-      selection.exit()
-        .attr('opacity', 1)
-        .transition()
-        .duration(3000)
-          .attr('opacity', 0)
-          .remove();
-    });
-
-    // -----------------------------------------------
-    slide.code_title(title = '.data(..., join)');
-
-    function init_svg(parent) {
-      empty_svg(parent);
-      svg.selectAll('rect')
-        .data([64, 128, 256])
-        .enter().append('rect')
-          .attr('x', 0)
-          .attr('y', function(d,i) { return i*90+50 })
-          .attr('width', function(d,i) { return d; })
-          .attr('height', 20)
-          .style('fill', 'steelblue')
-    }
-
-    slide.code(title, init_svg, function() {
-      // Let's say we start here:
-      /*
-      svg.selectAll('rect')
-        .data([64, 128, 256])
-        .enter().append('rect')
-          .attr('x', 0)
-          .attr('y', function(d,i) { return i*90+50 })
-          .attr('width', function(d,i) { return d; })
-          .attr('height', 20)
-          .style('fill', 'steelblue')
-      */
-      // And then we do this:
-
-      var selection = svg.selectAll('rect')
-        .data([128, 256, 71]) // <- incomplete?
-
-      selection.enter().append('rect')
-        .attr('x', 0)
-        .attr('y', function(d,i) { return i*90+50 })
-        .attr('width', function(d,i) { return d; })
-        .attr('height', 20)
-        .style('fill', 'steelblue')
-
-      selection
-        .transition()
-        .duration(3000)
-          .attr('x', 0)
-          .attr('y', function(d,i) { return i*90+50 })
-          .attr('width', function(d,i) { return d; })
-          .attr('height', 20)
-          .style('fill', 'steelblue')
-
-      selection.exit()
-        .remove()
-
-      // Note that String(5) === "5"
-    });
-
-    slide.code(title, init_svg, function() {
-      // Start the same as before
-
-      var selection = svg.selectAll('rect')
-        .data([128, 256, 71], String)
-
-      selection.enter().append('rect')
-        .attr('x', 0)
-        .attr('y', function(d,i) {
-            return (i+1)*100+50
-          })
-        .attr('width', function(d,i) { return d; })
-        .attr('height', 20)
-        .style('fill', 'steelblue')
-        .style('opacity', 0)
-
-      selection
-        .transition()
-        .duration(3000)
-          .attr('y', function(d,i) { return i*90+50 })
-          .attr('height', 20)
-          .style('opacity', 1)
-
-      selection.exit()
-        .transition()
-        .duration(3000)
-          .attr('y', function(d,i) {
-              return (i-1)*100+50
-            })
-          .style('opacity', 0)
-          .remove()
-    });
-
-    // -----------------------------------------------
-    slide.title('Educational Examples');
-
-    slide.code('Shuffle', empty_svg, function() {
-      // Global var accessible in subsequent runs
-      window.cards = window.cards || (function() {
-          var ret = [];
-          for (var i = 0; i < 4; i++) {
-            for (var j = 0; j < 4; j++) {
-              ret.push(
-                'JKQA'[i] +
-                '\u2665\u2666\u2663\u2660'[j]);
-            }
-          }
-          return ret;
-        })();
-
-      cards.sort(function() {return Math.random()-.5})
-
-      var selection = svg.selectAll('text')
-        .data(cards, String)
-
-      selection
-        .transition()
-        .duration(1000)
-          .attr('y', function(d,i) { return i*35+40 })
-
-      selection.enter().append('text')
-        .attr('x', 30)
-        .attr('y', function(d,i) { return i*35+40 })
-        .style('fill', function(d) {
-            return '\u2665\u2666'.indexOf(d[1]) < 0 ?
-              'black' : 'red';
-          })
-        .style('font', '20px monospace')
-        .text(String)
-    });
-
-    function init_cards(parent) {
-      empty_svg(parent);
-      window.cards = window.cards || (function() {
-          var ret = [];
-          for (var i = 0; i < 4; i++) {
-            for (var j = 0; j < 4; j++) {
-              ret.push(
-                'JKQA'[i] +
-                '\u2665\u2666\u2663\u2660'[j]);
-            }
-          }
-          return ret;
-        })();
-    }
-
-    slide.code('Shuffle (v2)', init_cards, function() {
-      // window.cards = ... same as before
-
-      cards.sort(function() {return Math.random()-.5})
-
-      var selection = svg.selectAll('text')
-        .data(cards, String)
-
-      selection
-        .transition().duration(500)
-        .attr('x', function(d,i) {return (i%8)*30+30})
-        .transition().duration(500).delay(500)
-        .attr('y', function(d,i) { return i*35+40 })
-        .transition().duration(500).delay(1000)
-        .attr('x', 30)
-
-      selection.enter().append('text')
-        .attr('x', 30)
-        .attr('y', function(d,i) { return i*35+40 })
-        .style('fill', function(d) {
-            return '\u2665\u2666'.indexOf(d[1]) < 0 ?
-              'black' : 'red';
-          })
-        .style('font', '20px monospace')
-        .text(String)
-    });
-
-    // -----------------------------------------------
-    slide.code('Drawing lines', empty_svg, function() {
-      svg.append('path')
-        .style('fill', 'none')
-        .style('stroke', 'black')
-        .style('stroke-width', 2)
-        .attr('d', 'M 10 10 L 200 200 '+
-                   'L 200 400 L 300 100 L 400 150')
-    });
-
-    slide.code('Drawing lines', empty_svg, function() {
-      var points = [
-        { x: 10,  y: 10  },
-        { x: 200, y: 200 },
-        { x: 200, y: 400 },
-        { x: 300, y: 100 },
-        { x: 400, y: 150 }
-      ]
-
-      var lineFn = d3.svg.line()
-        .x(function(d) { return d.x })
-        .y(function(d) { return d.y })
-
-      svg.append('path').data([points])
-        .style('fill', 'none')
-        .style('stroke', 'black')
-        .style('stroke-width', 2)
-        .attr('d', lineFn)
-    });
-
-    slide.code('Drawing lines', empty_svg, function() {
-      var pointsSin = d3.range(20).map(function(i) {
-        return {x: i/19, y: (Math.sin(i/3) + 1) / 2}
-      })
-      var pointsCos = d3.range(20).map(function(i) {
-        return {x: i/19, y: (Math.cos(i/3) + 1) / 2}
-      })
-
-
-      var w = 480
-      var h = 300
-      var x = d3.scale.linear()
-                .domain([0, 1]).range([0, w])
-      var y = d3.scale.linear()
-                .domain([0, 1]).range([h, 0])
-
-      var lineFn = d3.svg.line()
-        .x(function(d) { return x(d.x); })
-        .y(function(d) { return y(d.y); })
-
-      svg.selectAll('path')
-        .data([pointsSin, pointsCos])
-        .enter().append("path")
-        .style('fill', 'none')
-        .style('stroke', 'black')
-        .style('stroke-width', 2)
-        .attr('d', lineFn)
-    });
-
-    /*
-    ToDo:
-    - add MMX logo
-    */
-
-    </script>
-
-    <section class="top_title">
-      <h1>Where to learn more about SVG?</h1>
-      <img src="images/svgbook.png">
-      <img src="images/inspect.png">
-    </section>
-
-    <section class="title">
-      <h1>Questions?</h1>
-      <img class='mmx' src="images/MMX-logo.png">
-    </section>
-
+}); // d3.csv
+}); // slide.code
+</script>
   </body>
   <script src="deck/deck.js"></script>
 </html>
