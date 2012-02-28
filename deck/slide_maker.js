@@ -4,15 +4,29 @@
   var slide = {};
   window.slide = slide;
 
+  function fn_to_string(fn) {
+    var lines = fn.toString()
+      .replace(/^function\s*\([^)]*\)\s*{\s*\n/, '')
+      .replace(/\s*}\s*$/, '')
+      .split('\n');
+
+    // remove common pre-space
+    var minSpace = d3.min(lines.map(function(line) {
+      return line ? line.match(/^\s*/)[0].length : Infinity;
+    }));
+    if (minSpace && isFinite(minSpace)) {
+      lines = lines.map(function(line) { return line.substr(minSpace); })
+    }
+
+    return lines.join('\n');
+  }
+
   slide.code = function(title, init, code) {
     var out, codeText;
 
     function myInit() {
-      d3.selectAll('div.output').classed('output', false)
-      out
-        .classed('output', true)
-        .selectAll('*').remove();
-      if (typeof init === 'function') init();
+      out.selectAll('*').remove();
+      init(out.node());
     }
 
     var section = d3.select('body')
@@ -40,7 +54,7 @@
 
     function run() {
       var code = codeText.property('value');
-      code = '(function(console) { "use strict"\n' + code + '\n})({ log: myConsoleLog })';
+      code = '(function(console) { \n' + code + '\n})({ log: myConsoleLog })';
       out.select('div.error').remove();
       out.select('pre.log').remove();
       try {
@@ -53,9 +67,8 @@
     }
 
     codeText = codes.append('textarea')
-    .attr('class', 'code')
-      .attr('placeholder', 'JavaScript goes in here...')
-      .property('value', code)
+      .attr('class', 'code')
+      .property('value', fn_to_string(code))
       .on('keydown', function() {
           // Run if command + enter
           if (d3.event.keyCode === 13 && d3.event.metaKey) run();
