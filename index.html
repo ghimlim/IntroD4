@@ -5,13 +5,21 @@
     <link rel="stylesheet" type="text/css" href="deck/deck.css">
     <script src="d3/d3.js"></script>
     <script src="d3/d3.csv.js"></script>
+    <script src="d3/d3.layout.js"></script>
+    <script src="science/science.js"></script>
+    <script src="science/science.stats.js"></script>
     <script src="deck/slide_maker.js"></script>
     <script>
-      var title;
+var title;
 
-      function empty_svg(parent) {
-        window.svg = d3.select(parent).append('svg');
-      }
+function empty_svg(parent) {
+  window.svg = d3.select(parent).append('svg');
+}
+
+var w = 400,
+    h = 320,
+    // [top, right, bottom, left]
+    m = [150, 50, 150, 50];
     </script>
   </head>
   <body>
@@ -24,9 +32,23 @@
     </section>
 
 <script>
-slide.title('Dot Plot');
+slide.title("Basic Plots");
 
-slide.code('JavaScript', empty_svg, function() {
+slide.code("Constants", empty_svg, function() {
+
+function empty_svg(parent) {
+  window.svg = d3.select(parent).append('svg');
+}
+
+var w = 400,
+    h = 320,
+    // [top, right, bottom, left]
+    m = [150, 50, 150, 50];
+}); // slide.code
+
+//----------------------
+
+slide.code("Dot Plot", empty_svg, function() {
 d3.csv("f500.csv", function(f500) {
   // select revenues of CA companies
   var data = f500.filter(function(d) { 
@@ -34,17 +56,18 @@ d3.csv("f500.csv", function(f500) {
     .map(function(d) { 
       return parseInt(d.revenues) });
 
-  var w = 275,
-      h = 225,
-      m = [200, 125, 200, 125],
-      r = 3,
-      x = d3.scale.linear()
+  // constants
+  var r = 3;
+
+  // scales
+  var x = d3.scale.linear()
             .domain([0, d3.max(data)])
             .range([0, w]),
       y = d3.scale.ordinal()
             .domain(["CA"])
             .range([h/2]);
 
+  // container
   var vis = svg.append("svg")
               .attr("width", m[1] + w + m[3])
               .attr("height", m[0] + h + m[2])
@@ -95,30 +118,618 @@ d3.csv("f500.csv", function(f500) {
     .attr("text-anchor", "end")
     .text(String);
 
-  // draw the dots
-  vis.selectAll("circle")
-    .data(data)
-    .enter()
-    .append("circle")
-    .attr("cx", x)
-    .attr("cy", y("CA"))
-    .attr("r", r)
-    .on("mouseover", function(d) {
-      vis.append("text")
-        .attr("id", "tip")
-        .attr("x", x(d))
-        .attr("y", y("CA")-10)
-        .attr("text-anchor", "middle")
-        .attr("font-size", "8")
-        .text(d3.format(",")(d));
-      d3.select(this).attr("fill", "red");
+  // dots
+  var dots = vis.selectAll("circle")
+        .data(data)
+        .enter()
+        .append("circle")
+        .attr("cx", x)
+        .attr("cy", y("CA"))
+        .attr("r", r);
+
+  // dot labels
+  dots.on("mouseover", function(d) {
+    vis.append("text")
+      .attr("id", "tip")
+      .attr("x", x(d))
+      .attr("y", y("CA")-10)
+      .attr("text-anchor", "middle")
+      .attr("font-size", "8")
+      .text(d3.format(",")(d));
+    d3.select(this).attr("fill", "red");
     })
     .on("mouseout", function(d) {
-       vis.select("#tip").remove();
-       d3.select(this).attr("fill", "black")
+      vis.select("#tip").remove();
+      d3.select(this).attr("fill", "black")
     });
 }); // d3.csv
 }); // slide.code
+
+
+//----------------------
+
+slide.code("Dot Plot (using d3.svg.axis)", empty_svg, function() {
+d3.csv("f500.csv", function(f500) {
+  // select revenues of CA companies
+  var data = f500.filter(function(d) { 
+      return d.state_location == "CA"; })
+    .map(function(d) { 
+      return parseInt(d.revenues) });
+
+  // constants
+  var r = 3;
+
+  // scales
+  var x = d3.scale.linear()
+            .domain([0, d3.max(data)])
+            .range([0, w]),
+      y = d3.scale.ordinal()
+            .domain(["CA"])
+            .range([h/2]);
+
+  // axes
+  var xAxis = d3.svg
+                .axis()
+                .scale(x)
+                .ticks(5)
+                .tickSize(-h)
+                .tickPadding(5);
+
+  // container
+  var vis = svg.append("svg")
+              .attr("width", m[1] + w + m[3])
+              .attr("height", m[0] + h + m[2])
+              .append("g")
+              .attr("transform",
+                    "translate("+m[3]+","
+                                +m[0]+")");
+
+  // x axis
+  vis.append("g")
+    .attr("class", "x")
+    .attr("transform", "translate(0," + h + ")")
+    .call(xAxis);
+
+  // y axis
+  var yrule = vis.selectAll("g.y")
+                .data(["CA"])
+                .enter()
+                .append("g")
+                .attr("class", "y");
+
+  yrule.append("line")
+    .attr("x1", -3)
+    .attr("x2", 0)
+    .attr("y1", y)
+    .attr("y2", y)
+    .attr("stroke", "#ccc");
+
+  yrule.append("text")
+    .attr("x", -5)
+    .attr("y", y)
+    .attr("dy", ".35em")
+    .attr("text-anchor", "end")
+    .text(String);
+
+  // dots
+  var dots = vis.selectAll("circle")
+        .data(data)
+        .enter()
+        .append("circle")
+        .attr("cx", x)
+        .attr("cy", y("CA"))
+        .attr("r", r);
+
+  // dot labels
+  dots.on("mouseover", function(d) {
+    vis.append("text")
+      .attr("id", "tip")
+      .attr("x", x(d))
+      .attr("y", y("CA")-10)
+      .attr("text-anchor", "middle")
+      .attr("font-size", "8")
+      .text(d3.format(",")(d));
+    d3.select(this).attr("fill", "red");
+    })
+    .on("mouseout", function(d) {
+      vis.select("#tip").remove();
+      d3.select(this).attr("fill", "black")
+    });
+}); // d3.csv
+}); // slide.code
+
+//-------------------
+
+slide.code("Jitter Plot", empty_svg, function() {
+d3.csv("f500.csv", function(f500) {
+  // select revenues of CA companies
+  var data = f500.filter(function(d) { 
+      return d.state_location == "CA"; })
+    .map(function(d) { 
+      return parseInt(d.revenues) });
+
+  // constants
+  var r = 3;
+
+  // scales
+  var x = d3.scale.linear()
+            .domain([0, d3.max(data)])
+            .range([0, w]),
+      y = d3.scale.ordinal()
+            .domain(["CA"])
+            .range([h/2]);
+
+  // axes
+  var xAxis = d3.svg
+                .axis()
+                .scale(x)
+                .ticks(5)
+                .tickSize(-h)
+                .tickPadding(5);
+
+  // container
+  svg.html = "";
+  var vis = svg.append("svg")
+              .attr("width", m[1] + w + m[3])
+              .attr("height", m[0] + h + m[2])
+              .append("g")
+              .attr("transform",
+                    "translate("+m[3]+","
+                                +m[0]+")");
+
+  // x axis
+  vis.append("g")
+    .attr("class", "x")
+    .attr("transform", "translate(0," + h + ")")
+    .call(xAxis);
+
+  // y axis
+  var yrule = vis.selectAll("g.y")
+                .data(["CA"])
+                .enter()
+                .append("g")
+                .attr("class", "y");
+
+  yrule.append("line")
+    .attr("x1", -3)
+    .attr("x2", 0)
+    .attr("y1", y)
+    .attr("y2", y)
+    .attr("stroke", "#ccc");
+
+  yrule.append("text")
+    .attr("x", -5)
+    .attr("y", y)
+    .attr("dy", ".35em")
+    .attr("text-anchor", "end")
+    .text(String);
+
+  // dots
+  var dots = vis.selectAll("circle")
+        .data(data)
+        .enter()
+        .append("circle")
+        .attr("cx", x)
+        .attr("cy", function() {
+          return (h/4)+(Math.random()*(h/2));
+        })
+        .attr("r", r);
+
+  // dot labels
+  dots.on("mouseover", function(d) {
+    vis.append("text")
+      .attr("id", "tip")
+      .attr("x", x(d))
+      .attr("y", d3.select(this).attr("cy")-10)
+      .attr("text-anchor", "middle")
+      .text(d3.format(",")(d));
+    d3.select(this).attr("fill", "red");
+    })
+    .on("mouseout", function(d) {
+      vis.select("#tip").remove();
+      d3.select(this).attr("fill", "black")
+    });
+}); // d3.csv
+}); // slide.code
+
+//-----------------------
+
+slide.code("Histogram", empty_svg, function() {
+d3.csv("f500.csv", function(f500) {
+  // select revenues of CA companies
+  var data = f500.filter(function(d) { 
+      return d.state_location == "CA"; })
+    .map(function(d) { 
+      return parseInt(d.revenues) });
+
+  // constants
+  var histogram = d3.layout.histogram()
+                           .frequency(true)
+                           .bins(30)(data),
+      ymax = d3.max(histogram.map(function(d) { 
+                                    return d.y; 
+                                  }));
+
+  // scales
+  var x = d3.scale.linear()
+                  .domain([0, d3.max(data)])
+                  .range([0, w]),
+      y = d3.scale.linear()
+                  .domain([0, ymax])
+                  .range([h, 0]);
+
+  // axes
+  var xAxis = d3.svg
+                .axis()
+                .scale(x)
+                .ticks(5)
+                .tickSize(-h)
+                .tickPadding(5);
+
+  var yAxis = d3.svg
+                .axis()
+                .scale(y)
+                .ticks(5)
+                .tickSize(5)
+                .tickPadding(5)
+                .orient("left");
+
+  // container
+  var vis = svg.append("svg")
+              .attr("width", m[1] + w + m[3])
+              .attr("height", m[0] + h + m[2])
+              .append("g")
+              .attr("transform",
+                    "translate("+m[3]+","
+                                +m[0]+")");
+
+  // x axis
+  vis.append("g")
+    .attr("class", "x")
+    .attr("transform", "translate(0," + h + ")")
+    .call(xAxis);
+
+  // y axis
+  vis.append("g")
+    .attr("class", "y")
+    .call(yAxis);
+
+  // histogram bars 
+  vis.selectAll("rect")
+     .data(histogram)
+     .enter()
+     .append("rect")
+     .attr("x", function(d) { return x(d.x); })
+     .attr("y", function(d) { return y(d.y); })
+     .attr("width", function(d) {
+                      return x(d.dx);
+                    })
+     .attr("height", function(d) {
+                       return h-y(d.y);
+                     });
+}); // d3.csv
+}); // slide.code
+
+//-----------------------
+
+slide.code("Density Plot", empty_svg, function() {
+d3.csv("f500.csv", function(f500) {
+  // select revenues of CA companies
+  var data = f500.filter(function(d) { 
+      return d.state_location == "CA"; })
+    .map(function(d) { 
+      return parseInt(d.revenues) });
+
+  // constants
+  var xmin = 0,
+      xmax = d3.max(data),
+      kde_x_vals = d3.range(xmin,
+                            xmax,
+                            (xmax - xmin)/100),
+      bw = science.stats.bandwidth.nrd0,
+      kde = science.stats.kde()
+              .sample(data)
+              .bandwidth(bw)(kde_x_vals),
+      ymax = d3.max(kde, function(d) {
+                           return d[1]; 
+                         });
+
+  // scales
+  var x = d3.scale.linear()
+                  .domain([xmin, xmax])
+                  .range([0, w]),
+      y = d3.scale.linear()
+                  .domain([0, ymax])
+                  .range([h, 0]);
+
+  // axes
+  var xAxis = d3.svg
+                .axis()
+                .scale(x)
+                .ticks(5)
+                .tickSize(-h)
+                .tickPadding(5);
+
+  // container
+  var vis = svg.append("svg")
+              .attr("width", m[1] + w + m[3])
+              .attr("height", m[0] + h + m[2])
+              .append("g")
+              .attr("transform",
+                    "translate("+m[3]+","
+                                +m[0]+")");
+
+  // x axis
+  vis.append("g")
+    .attr("class", "x")
+    .attr("transform", "translate(0," + h + ")")
+    .call(xAxis);
+
+  // density plot
+  var line = d3.svg.line()
+  	           .x(function(d) { 
+                        return x(d[0]);
+                      })
+	           .y(function(d) {
+                        return y(d[1]);
+                      });
+
+  vis.append("path")
+     .attr("d", line(kde))
+     .attr("stroke", "#000")
+     .attr("stroke-width", "1.5px")
+     .attr("fill", "none");
+}); // d3.csv
+}); // slide.code
+
+//-----------------------
+
+slide.code("Box Plot", empty_svg, function() {
+// For an array d sorted in ascending order, return [q1, median, q3]
+function boxQuartiles(d) {
+  return [
+    d3.quantile(d, 0.25),
+    d3.quantile(d, 0.50),
+    d3.quantile(d, 0.75)
+  ];
+}
+
+// Returns a function to compute
+// the indices of values just inside
+// k times the interquartile range
+// (above, below) the (q3, q1) value
+// (to be used as whiskers in a box plot)
+function boxWhiskers(d) {
+  var q1 = d3.quantile(d, 0.25),
+      q3 = d3.quantile(d, 0.75),
+      k = 1.5,
+      iqr = (q3 - q1) * k,
+      i = -1,
+      j = d.length;
+  while (d[++i] < q1 - iqr);
+  while (d[--j] > q3 + iqr);
+  return [i, j];
+}
+
+d3.csv("f500.csv", function(f500) {
+  // select revenues of CA companies
+  // sort in ascending order
+  // NB: JS lexically sorts by default
+  var data = f500.filter(function(d) {
+      return d.state_location == "CA"; })
+   .map(function(d) {
+      return parseInt(d.revenues); })
+   .sort(d3.ascending);
+
+  // constants
+  var quartiles = boxQuartiles(data),
+      whisker_indices = boxWhiskers(data),
+      box_width = 20,
+      r = 2;
+
+  // scales
+  var y = d3.scale.linear()
+                  .domain([0, d3.max(data)])
+                  .range([h, 0]);
+
+  // axes
+  var yAxis = d3.svg
+                .axis()
+                .scale(y)
+                .ticks(5)
+                .tickSize(-w)
+                .tickPadding(5)
+                .tickFormat(d3.format("s"))
+                .orient("left");
+
+  // container
+  var vis = svg.append("svg")
+              .attr("width", m[1] + w + m[3])
+              .attr("height", m[0] + h + m[2])
+              .append("g")
+              .attr("transform",
+                    "translate("+m[3]+","
+                                +m[0]+")");
+
+  // x axis
+  var xrule = vis.selectAll("g.x")
+                 .data(["CA"])
+                 .enter()
+                 .append("g")
+                 .attr("class", "x");
+
+  xrule.append("line")
+       .attr("x1", w/2)
+       .attr("x2", w/2)
+       .attr("y1", h)
+       .attr("y2", h+4);
+
+  xrule.append("text")
+       .attr("x", w/2)
+       .attr("y", h+5)
+       .attr("dy", ".71em")
+       .attr("text-anchor", "middle")
+       .text(String);
+
+  // y axis
+  vis.append("g")
+    .attr("class", "y")
+    .call(yAxis);
+
+  // IQR
+  vis.append("rect")
+    .attr("class", "iqr")
+    .attr("x", w/2-box_width/2)
+    .attr("y", y(quartiles[2]))
+    .attr("width", box_width)
+    .attr("height", h - 
+      y(quartiles[2] - quartiles[0]));
+
+  // median
+  vis.append("line")
+    .attr("class", "median")
+    .attr("x1", w/2-box_width/2)
+    .attr("x2", w/2+box_width/2)
+    .attr("y1", y(quartiles[1]))
+    .attr("y2", y(quartiles[1]));
+
+  // whiskers
+  // NB: quartiles[i*2] is a trick
+  //     to get q1 for the lower whisker and 
+  //     q3 for the upper whisker
+  vis.selectAll(".whiskers line")
+     .data(whisker_indices)
+     .enter()
+     .append("line")
+     .attr("class", "whiskers")
+     .attr("x1", w/2)
+     .attr("x2", w/2)
+     .attr("y1", function(d, i) {
+       return y(quartiles[i*2]); })
+     .attr("y2", function(d) {
+       return y(data[d]); });
+
+  // outliers
+  var outliers = vis.selectAll("circle")
+    .data(data.filter(function(d, i) {
+      return i < boxWhiskers(data)[0] || 
+             i > boxWhiskers(data)[1];
+    }))
+    .enter()
+    .append("circle")
+    .attr("cx", w / 2)
+    .attr("cy", function(d) { return y(d); })
+    .attr("r", r)
+
+ // outlier labels
+ outliers.on("mouseover", function(d) {
+   vis.append("text")
+     .attr("id", "tip")
+     .attr("x", d3.select(this).attr("cx"))
+     .attr("dx", "10px")
+     .attr("y", y(d))
+     .attr("dy", "0.5ex")
+     .attr("text-anchor", "start")
+     .text(d3.format(",")(d));
+   d3.select(this).attr("fill", "red")
+   })
+   .on("mouseout", function(d) {
+     d3.select("#tip").remove();
+     d3.select(this).attr("fill", "black")
+   });
+}); // d3.csv
+}); // slide.code
+
+//-----------------------
+
+slide.code("ECDF Plot", empty_svg, function() {
+d3.csv("f500.csv", function(f500) {
+  // select revenues of CA companies
+  var data = f500.filter(function(d) { 
+      return d.state_location == "CA"; })
+    .map(function(d) { 
+      return parseInt(d.revenues) })
+    .sort(d3.ascending);
+
+  // constants
+  var r = 2;
+
+  // scales
+  var x = d3.scale.linear()
+                  .domain([0, d3.max(data)])
+                  .range([0, w]),
+      y = d3.scale.linear()
+                  .range([h, 0]);
+
+  // axes
+  var xAxis = d3.svg
+                .axis()
+                .scale(x)
+                .ticks(5)
+                .tickSize(-h)
+                .tickPadding(5);
+
+  var yAxis = d3.svg
+                .axis()
+                .scale(y)
+                .ticks(5)
+                .tickSize(5)
+                .tickPadding(5)
+                .orient("left");
+
+  // container
+  var vis = svg.append("svg")
+              .attr("width", m[1] + w + m[3])
+              .attr("height", m[0] + h + m[2])
+              .append("g")
+              .attr("transform",
+                    "translate("+m[3]+","
+                                +m[0]+")");
+
+  // x axis
+  vis.append("g")
+    .attr("class", "x")
+    .attr("transform", "translate(0," + h + ")")
+    .call(xAxis);
+
+  // y axis
+  vis.append("g")
+    .attr("class", "y")
+    .call(yAxis);
+
+  // group the data points and associated lines
+  var datapoint = vis.selectAll("g.datapoint")
+    .data(data)
+    .enter()
+    .append("g")
+    .attr("class", "datapoint");
+
+  // points
+  datapoint.append("circle")
+    .attr("cx", x)
+    .attr("cy", function(d, i) {
+      return y((i+1)/data.length);
+    })
+    .attr("r", r);
+
+  // lines
+  datapoint.append("line")
+    .attr("x1", x)
+    .attr("x2", function(d, i) {
+      return i+1<data.length ?
+             x(data[i+1]) :
+             x(d);
+    })
+    .attr("y1", function(d, i) {
+      return y((i+1)/data.length);
+    })
+    .attr("y2", function(d, i) {
+      return y((i+1)/data.length);
+    });
+
+}); // d3.csv
+}); // slide.code
+
 </script>
   </body>
   <script src="deck/deck.js"></script>
